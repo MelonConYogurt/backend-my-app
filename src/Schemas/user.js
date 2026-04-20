@@ -7,6 +7,6 @@ export const userSchema = new Schema({
   email: String,
   password: String,
   active: Boolean,
-  rol: String,
+  role: String,
   CreatedAt: { type: Date, default: Date.now },
 });

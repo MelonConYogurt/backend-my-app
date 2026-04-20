@@ -20,7 +20,7 @@ UserRouter.get("/", async (req, res) => {
 // CREATE USER (CON CALLBACKS)
 UserRouter.post("/", async (req, res) => {
   try {
-    const { name, email, password, rol, active } = req.body;
+    const { name, email, password, role, active } = req.body;
 
     // verificar si ya existe
     const existingUser = await User.findOne({ email });
@@ -49,7 +49,7 @@ UserRouter.post("/", async (req, res) => {
             name,
             email,
             password: hash,
-            rol,
+            role,
             active,
           });
 
@@ -57,7 +57,7 @@ UserRouter.post("/", async (req, res) => {
 
           res.status(201).json({
             message: "Usuario creado exitosamente",
-            user: { name, email, rol },
+            user: { name, email, role },
           });
         } catch (saveError) {
           console.error(saveError);
@@ -97,7 +97,7 @@ UserRouter.post("/validate", async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        rol: user.rol,
+        role: user.role,
         active: user.active,
       });
     });
