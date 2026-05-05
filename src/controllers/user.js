@@ -64,7 +64,6 @@ UserRouter.post("/", async (req, res) => {
       });
     }
 
-    // Verificar si existe
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -73,7 +72,6 @@ UserRouter.post("/", async (req, res) => {
       });
     }
 
-    // Encriptar contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -172,7 +170,6 @@ UserRouter.patch("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // No actualizar password desde aquí
     if (req.body.password) {
       delete req.body.password;
     }
@@ -200,88 +197,89 @@ UserRouter.patch("/update/:id", async (req, res) => {
   }
 });
 
-UserRouter.post("/upload/", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        message: "Archivo requerido",
-      });
-    }
+// UserRouter.post("/upload/", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({
+//         message: "Archivo requerido",
+//       });
+//     }
 
-    const file = req.file;
+//     const file = req.file;
 
-    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-      bucketName: "documents",
-    });
+//     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+//       bucketName: "documents",
+//     });
 
-    const uploadStream = bucket.openUploadStream(file.originalname, {
-      metadata: {
-        mimetype: file.mimetype,
-        size: file.size,
-      },
-    });
+//     const uploadStream = bucket.openUploadStream(file.originalname, {
+//       metadata: {
+//         mimetype: file.mimetype,
+//         size: file.size,
+//       },
+//     });
 
-    uploadStream.end(file.buffer);
+//     uploadStream.end(file.buffer);
 
-    uploadStream.on("finish", () => {
-      return res.status(201).json({
-        message: "Archivo subido correctamente",
-        id: uploadStream.id,
-        filename: file.originalname,
-      });
-    });
+//     uploadStream.on("finish", () => {
+//       return res.status(201).json({
+//         message: "Archivo subido correctamente",
+//         id: uploadStream.id,
+//         filename: file.originalname,
+//       });
+//     });
 
-    uploadStream.on("error", (error) => {
-      return res.status(500).json({
-        message: "Error al subir archivo",
-        error: error.message,
-      });
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Error interno",
-      error: error.message,
-    });
-  }
-});
+//     uploadStream.on("error", (error) => {
+//       return res.status(500).json({
+//         message: "Error al subir archivo",
+//         error: error.message,
+//       });
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       message: "Error interno",
+//       error: error.message,
+//     });
+//   }
+// });
 
-UserRouter.get("/download/:id", async (req, res) => {
-  try {
-    const fileId = req.params.id;
+// UserRouter.get("/download/:id", async (req, res) => {
+//   try {
+//     const fileId = req.params.id;
 
-    if (!fileId) {
-      return res.status(404).json({
-        message: "No se proporciono un id",
-      });
-    }
+//     if (!fileId) {
+//       return res.status(404).json({
+//         message: "No se proporciono un id",
+//       });
+//     }
 
-    const filedata = await File.findById(fileId);
+//     const filedata = await File.findById(fileId);
 
-    if (!filedata) {
-      return res.status(404).json({
-        message: "Archivo no encontrado",
-      });
-    }
+//     if (!filedata) {
+//       return res.status(404).json({
+//         message: "Archivo no encontrado",
+//       });
+//     }
 
-    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-      bucketName: "documents",
-    });
+//     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+//       bucketName: "documents",
+//     });
 
-    const downloadStream = bucket.openDownloadStream(
-      new mongoose.Types.ObjectId(fileId),
-    );
+//     const downloadStream = bucket.openDownloadStream(
+//       new mongoose.Types.ObjectId(fileId),
+//     );
 
-    res.set({
-      "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${filedata.filename}"`,
-    });
+//     res.set({
+//       "Content-Type": "application/octet-stream",
+//       "Content-Disposition": `attachment; filename="${filedata.filename}"`,
+//     });
 
-    downloadStream.pipe(res);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error interno",
-      error: error.message,
-    });
-  }
-});
+//     downloadStream.pipe(res);
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Error interno",
+//       error: error.message,
+//     });
+//   }
+// });
+
 export default UserRouter;

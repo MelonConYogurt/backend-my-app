@@ -15,6 +15,4 @@ export const userSchema = new Schema(
     collection: "users",
     versionKey: false,
   },
-  
-
 );
