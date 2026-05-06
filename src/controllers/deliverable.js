@@ -8,7 +8,6 @@ const Deliverable = mongoose.model("deliverable", deliverableSchema);
 const User = mongoose.model("user", userSchema);
 const DeliverableRouter = express.Router();
 
-// Configurar multer para almacenar archivos en memoria
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -16,7 +15,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
   fileFilter: (req, file, cb) => {
-    // Permitir solo ciertos tipos de archivo
     const allowedMimes = [
       "application/pdf",
       "application/msword",
@@ -38,7 +36,6 @@ const upload = multer({
   },
 });
 
-// Obtener todos los entregables de un docente
 DeliverableRouter.get("/docent/:docentId", async (req, res) => {
   try {
     const { docentId } = req.params;
@@ -59,7 +56,6 @@ DeliverableRouter.get("/docent/:docentId", async (req, res) => {
   }
 });
 
-// Obtener todos los entregables de un estudiante
 DeliverableRouter.get("/student/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -80,12 +76,10 @@ DeliverableRouter.get("/student/:userId", async (req, res) => {
   }
 });
 
-// Crear un nuevo entregable
 DeliverableRouter.post("/", async (req, res) => {
   try {
     const { title, description, dueDate, userId, docentId, file } = req.body;
 
-    // Validar campos requeridos
     if (!title || !description || !dueDate || !userId || !docentId) {
       return res.status(400).json({
         message:
@@ -93,7 +87,6 @@ DeliverableRouter.post("/", async (req, res) => {
       });
     }
 
-    // Validar que la fecha sea válida
     const parsedDueDate = new Date(dueDate);
     if (isNaN(parsedDueDate)) {
       return res.status(400).json({
@@ -127,7 +120,6 @@ DeliverableRouter.post("/", async (req, res) => {
   }
 });
 
-// Actualizar un entregable
 DeliverableRouter.patch("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -159,7 +151,6 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
   }
 });
 
-// Eliminar un entregable
 DeliverableRouter.delete("/delete/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -183,7 +174,6 @@ DeliverableRouter.delete("/delete/:id", async (req, res) => {
   }
 });
 
-// Subir un archivo para un entregable
 DeliverableRouter.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const { deliverableId } = req.body;
@@ -195,11 +185,9 @@ DeliverableRouter.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    // Obtener la conexión de MongoDB
     const db = mongoose.connection.db;
     const bucket = new mongoose.mongo.GridFSBucket(db);
 
-    // Crear un upload stream de GridFS
     const uploadStream = bucket.openUploadStream(file.originalname, {
       metadata: {
         mimetype: file.mimetype,
@@ -209,7 +197,6 @@ DeliverableRouter.post("/upload", upload.single("file"), async (req, res) => {
       },
     });
 
-    // Escribir el archivo en GridFS
     uploadStream.end(file.buffer);
 
     uploadStream.on("finish", () => {
