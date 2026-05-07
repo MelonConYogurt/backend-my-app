@@ -31,8 +31,6 @@ RubricRouter.post("/create", async (req, res) => {
   try {
     const { title, description, docentId, criterions } = req.body;
 
-    console.log(req.body);
-
     if (!title || !description || !docentId) {
       return res.status(400).json({
         message: "Faltan datos obligatorios (title, description, docentId)",
