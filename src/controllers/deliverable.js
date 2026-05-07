@@ -78,12 +78,19 @@ DeliverableRouter.get("/student/:userId", async (req, res) => {
 
 DeliverableRouter.post("/", async (req, res) => {
   try {
-    const { title, description, dueDate, userId, docentId, file } = req.body;
+    const { title, description, dueDate, userId, docentId, file, rubricId } =
+      req.body;
 
-    if (!title || !description || !dueDate || !userId || !docentId) {
+    if (
+      !title ||
+      !description ||
+      !dueDate ||
+      !userId ||
+      !docentId ||
+      !rubricId
+    ) {
       return res.status(400).json({
-        message:
-          "Título, descripción, fecha límite, usuario y docente son obligatorios",
+        message: "Faltan campos",
       });
     }
 
@@ -101,6 +108,7 @@ DeliverableRouter.post("/", async (req, res) => {
       userId,
       docentId,
       file,
+      rubricId,
     });
 
     await newDeliverable.save();

@@ -29,6 +29,10 @@ export const deliverableSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "documents.files",
     },
+    rubricId: {
+      type: Schema.Types.ObjectId,
+      ref: "rubric",
+    },
     rating: {
       type: Number,
     },
