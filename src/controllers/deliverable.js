@@ -76,6 +76,44 @@ DeliverableRouter.get("/student/:userId", async (req, res) => {
   }
 });
 
+DeliverableRouter.get("/student/:userId/stats", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const deliverables = await Deliverable.find({ userId }).sort({
+      createdAt: -1,
+    });
+
+    const stats = {
+      total: deliverables.length,
+      completado: deliverables.filter((d) => d.status === "completado").length,
+      entregado: deliverables.filter((d) => d.status === "entregado").length,
+      pendiente: deliverables.filter((d) => d.status === "pendiente").length,
+      rechazado: deliverables.filter((d) => d.status === "rechazado").length,
+      averageRating:
+        deliverables.filter((d) => d.rating).length > 0
+          ? (
+              deliverables
+                .filter((d) => d.rating)
+                .reduce((sum, d) => sum + d.rating, 0) /
+              deliverables.filter((d) => d.rating).length
+            ).toFixed(1)
+          : 0,
+      recentDeliverables: deliverables.slice(0, 5),
+    };
+
+    return res.status(200).json({
+      message: "Estadísticas obtenidas correctamente",
+      data: stats,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al obtener estadísticas",
+      error: error.message,
+    });
+  }
+});
+
 DeliverableRouter.post("/", async (req, res) => {
   try {
     const { title, description, dueDate, userId, docentId, file, rubricId } =
@@ -193,8 +231,9 @@ DeliverableRouter.post("/upload", upload.single("file"), async (req, res) => {
       });
     }
 
-    const db = mongoose.connection.db;
-    const bucket = new mongoose.mongo.GridFSBucket(db);
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "documents",
+    });
 
     const uploadStream = bucket.openUploadStream(file.originalname, {
       metadata: {
@@ -225,6 +264,46 @@ DeliverableRouter.post("/upload", upload.single("file"), async (req, res) => {
     console.error("Error uploading file:", error);
     return res.status(500).json({
       message: "Error al subir el archivo",
+      error: error.message,
+    });
+  }
+});
+
+DeliverableRouter.get("/download/:id", async (req, res) => {
+  try {
+    const fileId = req.params.id;
+
+    if (!fileId) {
+      return res.status(404).json({
+        message: "No se proporciono un id",
+      });
+    }
+
+    const filedata = await File.findById(fileId);
+
+    if (!filedata) {
+      return res.status(404).json({
+        message: "Archivo no encontrado",
+      });
+    }
+
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "documents",
+    });
+
+    const downloadStream = bucket.openDownloadStream(
+      new mongoose.Types.ObjectId(fileId),
+    );
+
+    res.set({
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${filedata.filename}"`,
+    });
+
+    downloadStream.pipe(res);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error interno",
       error: error.message,
     });
   }
