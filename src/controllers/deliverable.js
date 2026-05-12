@@ -3,8 +3,10 @@ import mongoose from "mongoose";
 import multer from "multer";
 import { deliverableSchema } from "../Schemas/deliverable.js";
 import { userSchema } from "../Schemas/user.js";
+import { fileSchema } from "../Schemas/files.js";
 
 const Deliverable = mongoose.model("deliverable", deliverableSchema);
+const File = mongoose.model("document", fileSchema);
 const User = mongoose.model("user", userSchema);
 const DeliverableRouter = express.Router();
 
@@ -284,6 +286,7 @@ DeliverableRouter.get("/download/:id", async (req, res) => {
     if (!filedata) {
       return res.status(404).json({
         message: "Archivo no encontrado",
+        response: filedata,
       });
     }
 
