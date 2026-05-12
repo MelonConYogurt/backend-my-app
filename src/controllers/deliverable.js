@@ -312,4 +312,45 @@ DeliverableRouter.get("/download/:id", async (req, res) => {
   }
 });
 
+DeliverableRouter.get("/view/:id", async (req, res) => {
+  try {
+    const fileId = req.params.id;
+
+    if (!fileId) {
+      return res.status(404).json({
+        message: "No se proporciono un id",
+      });
+    }
+
+    const filedata = await File.findById(fileId);
+
+    if (!filedata) {
+      return res.status(404).json({
+        message: "Archivo no encontrado",
+        response: filedata,
+      });
+    }
+
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "documents",
+    });
+
+    const viewStream = bucket.openDownloadStream(
+      new mongoose.Types.ObjectId(fileId),
+    );
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${filedata.filename}"`,
+    });
+
+    viewStream.pipe(res);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error interno",
+      error: error.message,
+    });
+  }
+});
+
 export default DeliverableRouter;
