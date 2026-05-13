@@ -353,4 +353,45 @@ DeliverableRouter.get("/view/:id", async (req, res) => {
   }
 });
 
+DeliverableRouter.get("/docent/:docentId/stats", async (req, res) => {
+  try {
+    const { docentId } = req.params;
+
+    const deliverables = await Deliverable.find({ docentId }).sort({
+      createdAt: -1,
+    });
+
+    // Get unique students
+    const students = await User.find({
+      _id: { $in: deliverables.map((d) => d.userId) },
+      role: "student",
+    }).select("name email");
+
+    const stats = {
+      totalStudents: students.length,
+      totalDeliverables: deliverables.length,
+      completado: deliverables.filter((d) => d.status === "completado").length,
+      entregado: deliverables.filter((d) => d.status === "entregado").length,
+      pendiente: deliverables.filter((d) => d.status === "pendiente").length,
+      rechazado: deliverables.filter((d) => d.status === "rechazado").length,
+      recentDeliverables: deliverables.slice(0, 5).map((d) => ({
+        ...d.toObject(),
+        studentName:
+          students.find((s) => s._id.toString() === d.userId.toString())
+            ?.name || "Desconocido",
+      })),
+    };
+
+    return res.status(200).json({
+      message: "Estadísticas obtenidas correctamente",
+      data: stats,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al obtener estadísticas",
+      error: error.message,
+    });
+  }
+});
+
 export default DeliverableRouter;

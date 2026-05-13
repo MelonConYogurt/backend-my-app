@@ -55,7 +55,7 @@ UserRouter.get("/active/", async (req, res) => {
 
 UserRouter.post("/", async (req, res) => {
   try {
-    const { name, email, password, role, active } = req.body;
+    const { name, email, password, role, active, phone } = req.body;
 
     // Validar campos requeridos
     if (!name || !email || !password) {
@@ -78,6 +78,7 @@ UserRouter.post("/", async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      phone,
       role,
       active,
     });
@@ -90,6 +91,7 @@ UserRouter.post("/", async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        phone: newUser.phone,
         role: newUser.role,
         active: newUser.active,
       },
@@ -132,6 +134,7 @@ UserRouter.post("/validate", async (req, res) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       active: user.active,
     });
