@@ -186,7 +186,7 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
 
     if (req.body.comments && !Array.isArray(req.body.comments)) {
       return res.status(400).json({
-        message: "comments debe ser un arreglo",
+        message: "Hay un problema con los comentarios",
       });
     }
 
@@ -233,30 +233,6 @@ DeliverableRouter.delete("/delete/:id", async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Error al eliminar entregable",
-      error: error.message,
-    });
-  }
-});
-
-DeliverableRouter.get("/info/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const deliverable = await populateDeliverable(Deliverable.findById(id));
-
-    if (!deliverable) {
-      return res.status(404).json({
-        message: "Entregable no encontrado",
-      });
-    }
-
-    return res.status(200).json({
-      message: "Entregable obtenido correctamente",
-      data: deliverable,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      message: "Error al obtener entregable",
       error: error.message,
     });
   }
@@ -401,7 +377,6 @@ DeliverableRouter.get("/docent/:docentId/stats", async (req, res) => {
       createdAt: -1,
     });
 
-    // Get unique students
     const students = await User.find({
       _id: { $in: deliverables.map((d) => d.userId) },
       role: "student",
