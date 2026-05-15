@@ -10,6 +10,12 @@ const File = mongoose.model("document", fileSchema);
 const User = mongoose.model("user", userSchema);
 const DeliverableRouter = express.Router();
 
+const populateDeliverable = (query) =>
+  query
+    .populate("userId")
+    .populate("docentId", "name email role")
+    .populate({ path: "comments.authorId", select: "name email role" });
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -42,9 +48,9 @@ DeliverableRouter.get("/docent/:docentId", async (req, res) => {
   try {
     const { docentId } = req.params;
 
-    const deliverables = await Deliverable.find({ docentId })
-      .populate("userId", "name email")
-      .sort({ createdAt: -1 });
+    const deliverables = await populateDeliverable(
+      Deliverable.find({ docentId }),
+    ).sort({ createdAt: -1 });
 
     return res.status(200).json({
       message: "Entregables obtenidos correctamente",
@@ -62,9 +68,9 @@ DeliverableRouter.get("/student/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const deliverables = await Deliverable.find({ userId })
-      .populate("docentId", "name email")
-      .sort({ createdAt: -1 });
+    const deliverables = await populateDeliverable(
+      Deliverable.find({ userId }),
+    ).sort({ createdAt: -1 });
 
     return res.status(200).json({
       message: "Entregables obtenidos correctamente",
@@ -92,6 +98,10 @@ DeliverableRouter.get("/student/:userId/stats", async (req, res) => {
       entregado: deliverables.filter((d) => d.status === "entregado").length,
       pendiente: deliverables.filter((d) => d.status === "pendiente").length,
       rechazado: deliverables.filter((d) => d.status === "rechazado").length,
+      totalComments: deliverables.reduce(
+        (count, d) => count + (d.comments ? d.comments.length : 0),
+        0,
+      ),
       averageRating:
         deliverables.filter((d) => d.rating).length > 0
           ? (
@@ -118,8 +128,17 @@ DeliverableRouter.get("/student/:userId/stats", async (req, res) => {
 
 DeliverableRouter.post("/", async (req, res) => {
   try {
-    const { title, description, dueDate, userId, docentId, file, rubricId } =
-      req.body;
+    const {
+      title,
+      description,
+      dueDate,
+      userId,
+      docentId,
+      file,
+      rubricId,
+      feedback,
+      comments,
+    } = req.body;
 
     if (
       !title ||
@@ -141,6 +160,36 @@ DeliverableRouter.post("/", async (req, res) => {
       });
     }
 
+    let formattedComments = [];
+    if (comments) {
+      if (!Array.isArray(comments)) {
+        return res.status(400).json({
+          message: "comments debe ser un arreglo",
+        });
+      }
+
+      for (const comment of comments) {
+        if (!comment.authorId || !comment.role || !comment.message) {
+          return res.status(400).json({
+            message: "Cada comentario debe tener authorId, role y message",
+          });
+        }
+
+        if (!["student", "docent"].includes(comment.role)) {
+          return res.status(400).json({
+            message: "El role del comentario debe ser 'student' o 'docent'",
+          });
+        }
+      }
+
+      formattedComments = comments.map((comment) => ({
+        authorId: comment.authorId,
+        role: comment.role,
+        message: comment.message,
+        createdAt: comment.createdAt ? new Date(comment.createdAt) : undefined,
+      }));
+    }
+
     const newDeliverable = new Deliverable({
       title,
       description,
@@ -149,14 +198,19 @@ DeliverableRouter.post("/", async (req, res) => {
       docentId,
       file,
       rubricId,
+      feedback,
+      comments: formattedComments,
     });
 
     await newDeliverable.save();
-    await newDeliverable.populate("userId", "name email");
+
+    const populatedDeliverable = await populateDeliverable(
+      Deliverable.findById(newDeliverable._id),
+    );
 
     return res.status(201).json({
       message: "Entregable creado correctamente",
-      data: newDeliverable,
+      data: populatedDeliverable,
     });
   } catch (error) {
     console.error("Error creating deliverable:", error);
@@ -172,14 +226,18 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updatedDeliverable = await Deliverable.findByIdAndUpdate(
-      id,
-      req.body,
-      {
+    if (req.body.comments && !Array.isArray(req.body.comments)) {
+      return res.status(400).json({
+        message: "comments debe ser un arreglo",
+      });
+    }
+
+    const updatedDeliverable = await populateDeliverable(
+      Deliverable.findByIdAndUpdate(id, req.body, {
         new: true,
         runValidators: true,
-      },
-    ).populate("userId", "name email");
+      }),
+    );
 
     if (!updatedDeliverable) {
       return res.status(404).json({
@@ -217,6 +275,30 @@ DeliverableRouter.delete("/delete/:id", async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: "Error al eliminar entregable",
+      error: error.message,
+    });
+  }
+});
+
+DeliverableRouter.get("/info/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deliverable = await populateDeliverable(Deliverable.findById(id));
+
+    if (!deliverable) {
+      return res.status(404).json({
+        message: "Entregable no encontrado",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Entregable obtenido correctamente",
+      data: deliverable,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Error al obtener entregable",
       error: error.message,
     });
   }
@@ -370,6 +452,10 @@ DeliverableRouter.get("/docent/:docentId/stats", async (req, res) => {
     const stats = {
       totalStudents: students.length,
       totalDeliverables: deliverables.length,
+      totalComments: deliverables.reduce(
+        (count, d) => count + (d.comments ? d.comments.length : 0),
+        0,
+      ),
       completado: deliverables.filter((d) => d.status === "completado").length,
       entregado: deliverables.filter((d) => d.status === "entregado").length,
       pendiente: deliverables.filter((d) => d.status === "pendiente").length,
@@ -379,6 +465,7 @@ DeliverableRouter.get("/docent/:docentId/stats", async (req, res) => {
         studentName:
           students.find((s) => s._id.toString() === d.userId.toString())
             ?.name || "Desconocido",
+        commentsCount: d.comments ? d.comments.length : 0,
       })),
     };
 

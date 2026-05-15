@@ -36,6 +36,34 @@ export const deliverableSchema = new Schema(
     rating: {
       type: Number,
     },
+    feedback: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    comments: [
+      {
+        authorId: {
+          type: Schema.Types.ObjectId,
+          ref: "user",
+          required: true,
+        },
+        role: {
+          type: String,
+          enum: ["student", "docent"],
+          required: true,
+        },
+        message: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     collection: "deliverables",
