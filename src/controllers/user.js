@@ -178,7 +178,7 @@ UserRouter.patch("/update/:id", async (req, res) => {
     }
 
     const updatedUser = await User.findByIdAndUpdate(id, req.body, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).select("-password");
 

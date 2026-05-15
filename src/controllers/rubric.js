@@ -116,7 +116,7 @@ RubricRouter.patch("/update/:id", async (req, res) => {
     }
 
     const updatedRubric = await Rubric.findByIdAndUpdate(rubricId, req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 
