@@ -1,6 +1,30 @@
 import mongoose, { mongo } from "mongoose";
 const { Schema } = mongoose;
 
+export const commentSchema = new Schema(
+  {
+    authorId: {
+      type: Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ["student", "docent"],
+      required: true,
+    },
+    message: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  {
+    _id: false,
+    timestamps: { createdAt: true, updatedAt: false },
+  },
+);
+
 export const deliverableSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -41,29 +65,7 @@ export const deliverableSchema = new Schema(
       trim: true,
       default: "",
     },
-    comments: [
-      {
-        authorId: {
-          type: Schema.Types.ObjectId,
-          ref: "user",
-          required: true,
-        },
-        role: {
-          type: String,
-          enum: ["student", "docent"],
-          required: true,
-        },
-        message: {
-          type: String,
-          required: true,
-          trim: true,
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+    comments: [commentSchema],
   },
   {
     collection: "deliverables",

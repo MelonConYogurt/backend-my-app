@@ -128,17 +128,8 @@ DeliverableRouter.get("/student/:userId/stats", async (req, res) => {
 
 DeliverableRouter.post("/", async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      dueDate,
-      userId,
-      docentId,
-      file,
-      rubricId,
-      feedback,
-      comments,
-    } = req.body;
+    const { title, description, dueDate, userId, docentId, rubricId } =
+      req.body;
 
     if (
       !title ||
@@ -160,46 +151,13 @@ DeliverableRouter.post("/", async (req, res) => {
       });
     }
 
-    let formattedComments = [];
-    if (comments) {
-      if (!Array.isArray(comments)) {
-        return res.status(400).json({
-          message: "comments debe ser un arreglo",
-        });
-      }
-
-      for (const comment of comments) {
-        if (!comment.authorId || !comment.role || !comment.message) {
-          return res.status(400).json({
-            message: "Cada comentario debe tener authorId, role y message",
-          });
-        }
-
-        if (!["student", "docent"].includes(comment.role)) {
-          return res.status(400).json({
-            message: "El role del comentario debe ser 'student' o 'docent'",
-          });
-        }
-      }
-
-      formattedComments = comments.map((comment) => ({
-        authorId: comment.authorId,
-        role: comment.role,
-        message: comment.message,
-        createdAt: comment.createdAt ? new Date(comment.createdAt) : undefined,
-      }));
-    }
-
     const newDeliverable = new Deliverable({
       title,
       description,
       dueDate: parsedDueDate,
       userId,
       docentId,
-      file,
       rubricId,
-      feedback,
-      comments: formattedComments,
     });
 
     await newDeliverable.save();
