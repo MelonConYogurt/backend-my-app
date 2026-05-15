@@ -1,8 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
 import multer from "multer";
-import "dotenv/config";
-import { Resend } from "resend";
 import { deliverableSchema } from "../Schemas/deliverable.js";
 import { userSchema } from "../Schemas/user.js";
 import { fileSchema } from "../Schemas/files.js";
@@ -11,7 +9,6 @@ const Deliverable = mongoose.model("deliverable", deliverableSchema);
 const File = mongoose.model("document", fileSchema);
 const User = mongoose.model("user", userSchema);
 const DeliverableRouter = express.Router();
-const resendApiKey = process.env.RESEND_API_KEY;
 
 const populateDeliverable = (query) =>
   query
@@ -237,82 +234,10 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
 
     const updatedDeliverable = await populateDeliverable(
       Deliverable.findByIdAndUpdate(id, req.body, {
-        returnDocument: "after",
+        new: true,
         runValidators: true,
       }),
     );
-
-    const resend = new Resend(resendApiKey);
-
-    const frontendUrl = "http://localhost:3000/student/entregables/";
-
-    await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: "alejopsornal@gmail.com",
-      subject: "Cambios en tu entregable",
-      html: `
-    <div style="
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      padding: 40px;
-    ">
-      <div style="
-        max-width: 600px;
-        margin: auto;
-        background: white;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      ">
-        
-        <h1 style="
-          color: #2563eb;
-          text-align: center;
-        ">
-          📚 Cambios en tu entregable
-        </h1>
-
-        <p style="
-          font-size: 16px;
-          color: #333;
-          line-height: 1.6;
-        ">
-          Hola,
-          <br /><br />
-          Se realizaron cambios en tu entregable. 
-          Puedes revisarlos haciendo clic en el botón de abajo.
-        </p>
-
-        <div style="text-align:center; margin-top:30px;">
-          <a 
-            href="${frontendUrl}"
-            style="
-              background-color: #2563eb;
-              color: white;
-              padding: 14px 24px;
-              text-decoration: none;
-              border-radius: 8px;
-              font-weight: bold;
-              display: inline-block;
-            "
-          >
-            Ver entregable
-          </a>
-        </div>
-
-        <p style="
-          margin-top:40px;
-          font-size: 14px;
-          color: #888;
-          text-align:center;
-        ">
-          Este correo fue enviado automáticamente.
-        </p>
-
-      </div>
-    </div>
-  `,
-    });
 
     if (!updatedDeliverable) {
       return res.status(404).json({
