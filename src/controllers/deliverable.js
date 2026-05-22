@@ -4,11 +4,13 @@ import multer from "multer";
 import { deliverableSchema } from "../Schemas/deliverable.js";
 import { userSchema } from "../Schemas/user.js";
 import { fileSchema } from "../Schemas/files.js";
+import { Resend } from "resend";
 
 const Deliverable = mongoose.model("deliverable", deliverableSchema);
 const File = mongoose.model("document", fileSchema);
 const User = mongoose.model("user", userSchema);
 const DeliverableRouter = express.Router();
+const resendApiKey = process.env.RESEND_API_KEY;
 
 const populateDeliverable = (query) =>
   query
@@ -166,6 +168,127 @@ DeliverableRouter.post("/", async (req, res) => {
       Deliverable.findById(newDeliverable._id),
     );
 
+    const student = await User.findById(userId);
+    const docent = await User.findById(docentId);
+
+    const resend = new Resend(resendApiKey);
+    const frontendUrl = "http://localhost:3000/student/entregables";
+
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: student.email,
+      subject: "Nuevo entregable asignado",
+      html: `
+        <div style="
+          font-family: Arial, sans-serif;
+          background-color: #f4f7fb;
+          padding: 40px 20px;
+        ">
+          <div style="
+            max-width: 650px;
+            margin: auto;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+          ">
+    
+            <div style="
+              background: linear-gradient(135deg, #2563eb, #1d4ed8);
+              padding: 30px;
+              text-align: center;
+            ">
+            <h1 style="
+            color: white;
+            margin: 0;
+            font-size: 28px;
+          ">
+            Nuevo Entregable
+          </h1>
+            </div>
+    
+            <div style="padding: 35px;">
+    
+              <p style="
+                font-size: 16px;
+                color: #374151;
+                line-height: 1.6;
+              ">
+                Hola <strong>${student.name}</strong>,
+                <br /><br />
+                Se te ha asignado un nuevo entregable. Aquí tienes los detalles:
+              </p>
+    
+              <div style="
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-radius: 12px;
+                padding: 25px;
+                margin-top: 25px;
+              ">
+    
+                <p style="margin: 10px 0;">
+                  <strong> Título:</strong><br />
+                  ${title}
+                </p>
+    
+                <p style="margin: 10px 0;">
+                  <strong>Descripción:</strong><br />
+                  ${description}
+                </p>
+    
+                <p style="margin: 10px 0;">
+                  <strong> Fecha de entrega:</strong><br />
+                  ${new Date(dueDate).toLocaleDateString("es-CO", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </p>
+    
+                <p style="margin: 10px 0;">
+                  <strong>Docente:</strong><br />
+                  ${docent.name}
+                </p>
+    
+              </div>
+    
+              <div style="
+                text-align: center;
+                margin-top: 35px;
+              ">
+                <a
+                  href="${frontendUrl}"
+                  style="
+                    background-color: #2563eb;
+                    color: white;
+                    text-decoration: none;
+                    padding: 14px 28px;
+                    border-radius: 10px;
+                    font-weight: bold;
+                    display: inline-block;
+                    font-size: 16px;
+                  "
+                >
+                  Ver entregable
+                </a>
+              </div>
+    
+              <p style="
+                margin-top: 40px;
+                font-size: 14px;
+                color: #6b7280;
+                text-align: center;
+              ">
+                Recuerda revisar tu entregable antes de la fecha límite.
+              </p>
+    
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
     return res.status(201).json({
       message: "Entregable creado correctamente",
       data: populatedDeliverable,
@@ -202,6 +325,128 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
         message: "Entregable no encontrado",
       });
     }
+
+    const resend = new Resend(resendApiKey);
+    const frontendUrl = "http://localhost:3000/student/entregables";
+
+    const student = await User.findById(req.body.userId);
+
+    console.log(student);
+
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: student.email,
+      subject: "Cambios en tu entregable",
+      html: `
+      <div style="
+      font-family: Arial, sans-serif;
+      background-color: #f4f7fb;
+      padding: 40px 20px;
+    ">
+      <div style="
+        max-width: 650px;
+        margin: auto;
+        background: #ffffff;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      ">
+    
+        <div style="
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          padding: 35px 30px;
+          text-align: center;
+        ">
+    
+          <h1 style="
+          color: white;
+          margin: 0;
+          margin: 0;
+          font-size: 28px;
+          ">
+            Cambios en tu entregable
+          </h1>
+    
+          <span style="
+            display: inline-block;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 15px;
+            text-transform: uppercase;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    
+            background:
+              ${
+                req.body.status === "completado"
+                  ? "#10b981"
+                  : req.body.status === "entregado"
+                    ? "#8b5cf6"
+                    : req.body.status === "pendiente"
+                      ? "#f59e0b"
+                      : req.body.status === "rechazado"
+                        ? "#f97316"
+                        : "#6b7280"
+              };
+          ">
+
+            Estado: ${req.body.status}
+          </span>
+    
+        </div>
+    
+        <div style="padding: 35px;">
+    
+          <p style="
+            font-size: 16px;
+            color: #374151;
+            line-height: 1.7;
+            margin-top: 0;
+          ">
+            Hola <strong>${student.name}</strong>,
+            <br /><br />
+            Se han realizado cambios en tu entregable.
+            Puedes revisarlos rápidamente haciendo clic en el botón de abajo.
+          </p>
+    
+          <div style="
+            text-align: center;
+            margin-top: 35px;
+          ">
+            <a
+              href="${frontendUrl}"
+              style="
+                background-color: #2563eb;
+                color: white;
+                text-decoration: none;
+                padding: 14px 28px;
+                border-radius: 10px;
+                font-weight: bold;
+                display: inline-block;
+                font-size: 16px;
+                box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+              "
+            >
+              Ver entregable
+            </a>
+          </div>
+    
+          <p style="
+            margin-top: 40px;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            line-height: 1.5;
+          ">
+            Recuerda revisar tu entregable antes de la fecha límite.
+          </p>
+    
+        </div>
+      </div>
+    </div>
+      `,
+    });
 
     return res.status(200).json({
       message: "Entregable actualizado correctamente",
