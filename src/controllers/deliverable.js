@@ -315,8 +315,7 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
 
     const updatedDeliverable = await populateDeliverable(
       Deliverable.findByIdAndUpdate(id, req.body, {
-        new: true,
-        runValidators: true,
+        returnDocument: "after",
       }),
     );
 
@@ -453,6 +452,7 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
       data: updatedDeliverable,
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({
       message: "Error al actualizar entregable",
       error: error.message,
