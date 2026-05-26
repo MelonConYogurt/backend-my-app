@@ -25,18 +25,7 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "image/jpeg",
-      "image/png",
-      "application/zip",
-    ];
+    const allowedMimes = ["application/pdf"];
 
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
@@ -328,9 +317,15 @@ DeliverableRouter.patch("/update/:id", async (req, res) => {
     const resend = new Resend(resendApiKey);
     const frontendUrl = "http://localhost:3000/student/entregables";
 
-    const student = await User.findById(req.body.userId);
+    const studentId =
+      updatedDeliverable.userId?._id ?? updatedDeliverable.userId;
+    const student = await User.findById(studentId);
 
-    console.log(student);
+    if (!student) {
+      return res.status(404).json({
+        message: "Estudiante no encontrado para el entregable actualizado",
+      });
+    }
 
     await resend.emails.send({
       from: "onboarding@resend.dev",
@@ -609,6 +604,55 @@ DeliverableRouter.get("/view/:id", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Error interno",
+      error: error.message,
+    });
+  }
+});
+
+DeliverableRouter.post("/comment/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { authorId, role, message } = req.body;
+
+    if (!authorId || !role || !message) {
+      return res.status(400).json({
+        message: "authorId, role y message son requeridos",
+      });
+    }
+
+    const deliverable = await Deliverable.findById(id);
+
+    if (!deliverable) {
+      return res.status(404).json({
+        message: "Entregable no encontrado",
+      });
+    }
+
+    const newComment = {
+      authorId,
+      role,
+      message,
+      createdAt: new Date(),
+    };
+
+    deliverable.comments.push(newComment);
+    await deliverable.save();
+
+    const updatedDeliverable = await populateDeliverable(
+      Deliverable.findById(id),
+    );
+
+    const lastComment =
+      updatedDeliverable.comments[updatedDeliverable.comments.length - 1];
+
+    return res.status(201).json({
+      message: "Comentario agregado correctamente",
+      comment: lastComment,
+    });
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    return res.status(500).json({
+      message: "Error al agregar comentario",
       error: error.message,
     });
   }
